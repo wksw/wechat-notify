@@ -1,0 +1,5 @@
+#!/bin/bash
+
+MYSQL_ROOT_PASSWORD="rootwksw"
+MYSQL_KEYSTONE_PASSWORD="keystone"
+MYSQL_NOTIFY_PASSWORD="notify"
