@@ -9,6 +9,8 @@ import (
 	. "wksw/notify/models/keystone"
 	"encoding/json"
 	"github.com/astaxie/beego/orm"
+	"fmt"
+	. "wksw/notify/models/notify/publicnummodels"
 )
 
 type ProjectController struct {
@@ -169,8 +171,77 @@ func (this *ProjectController) Get() {
 		ersp.ErrCode = 3007
 		ersp.ErrMsg = "get projects fail"
 		this.Ctx.Output.JSON(ersp, true, false)
+		return
 
+	}
+	config, err := GetConfig()
+	if err != nil {
+		beego.Error(err)
+		this.Ctx.Output.JSON(ConfErr, true, false)
+		return
+	}
+	ssdb, err := NewSsdb(config.Db.WriteHost, config.Db.WritePort)
+	if err != nil {
+		beego.Error(err)
+		this.Ctx.Output.JSON(ConnectDbErr, true, false)
+		return
+	}
+	defer ssdb.Client.Close()
+	for index, m := range(maps){
+		typee := m["Type"]
+		if typee.(int64) ==  1{
+			currentUser, _ := ssdb.Zsize(fmt.Sprintf(UNKNOWN_TEMPLATE_ID, m["Appid"])) 
+			maps[index]["currentUser"] = currentUser
+		} else if typee.(int64) == 2 {
+			var user User
+			user.AppId = m["Appid"].(string)
+			user.Secret = m["Secret"].(string)
+			token, _ := ssdb.GetSetToken(&user)
+			u, err := GetUsers(token, "")
+			if err != nil {
+				beego.Error(err)
+				maps[index]["currentUser"] = 0
+			} else {
+				maps[index]["currentUser"] = u.Total
+			}
+
+		}
+
+
+		m["Secret"] = "******"
 	}
 	this.Ctx.Output.JSON(maps, true, false)
 	return
 }
+
+func (this *ProjectController) GetByAppId() {
+	var ersp ErrResponse
+	appid := this.Ctx.Input.Param(":appid")
+	tokeninfo, err := GetUserInfo(this.Ctx.Input.Header("X-Auth-Token"))
+	if err != nil {
+		beego.Error(err)
+		ersp.ErrCode = 3008
+		ersp.ErrMsg = "get user info fail"
+		this.Ctx.Output.JSON(ersp, true, false)
+		return
+	}
+
+	o := orm.NewOrm()
+	o.Using("default")
+	var maps []orm.Params
+	_, err = o.QueryTable("NotifyProject").Filter("Userid", tokeninfo.Token.User.Id).Filter("Appid", appid).Values(&maps)
+	if err != nil {
+		beego.Error(err)
+		ersp.ErrCode = 3007
+		ersp.ErrMsg = "get project fail"
+		this.Ctx.Output.JSON(ersp, true, false)
+		return
+	}
+	for _, m := range(maps) {
+		m["Secret"] = "******"
+	}
+	this.Ctx.Output.JSON(maps, true, false)
+	return
+
+}
+

@@ -207,3 +207,101 @@ func (this *UserController) Registe() {
 }
 
 
+func (this *UserController) WxLogin() {
+	var resp ErrResponse
+
+	code := this.Ctx.Input.Header("x-wechat-code")
+	if code == "" {
+		beego.Error("wxlogin get x-wechat-code fail")
+		resp.ErrCode = 4001
+		resp.ErrMsg = "missing x-wechat-code in header"
+		this.Ctx.Output.JSON(resp, true, false)
+		return
+	}
+
+	encrypted := this.Ctx.Input.Header("x-wechat-encrypted")
+	if encrypted == "" {
+		beego.Error("wxlogin get x-wechat-encrypted fail")
+		resp.ErrCode = 4001
+		resp.ErrMsg = "missing x-wechat-encrypted in header"
+		this.Ctx.Output.JSON(resp, true, false)
+		return
+	}
+
+	iv := this.Ctx.Input.Header("x-wechat-iv")
+	if iv == "" {
+		beego.Error("wxlogin get x-wechat-iv fail")
+		resp.ErrCode = 4001
+		resp.ErrMsg = "missing x-wechat-iv in header"
+		this.Ctx.Output.JSON(resp, true, false)
+		return
+	}
+
+	config, err := GetConfig()
+	if err != nil {
+		beego.Error(err)
+		resp.ErrCode = 5000
+		resp.ErrMsg = "system internal error"
+		this.Ctx.Output.JSON(resp, true, false)
+		return
+	}
+
+	wl, err := WxLogin(config.Wechat.AppId, config.Wechat.Secret, code)
+	if err != nil {
+		beego.Error(err)
+		resp.ErrCode = 5000
+		resp.ErrMsg = "get userinfo from remote server fail"
+		this.Ctx.Output.JSON(resp, true, false)
+		return
+	}
+
+	var t K_UserToken
+	t.At.Idt.Methods = append(t.At.Idt.Methods, "password")
+	t.At.Idt.Pwd.Us.Name = wl.OpenId
+	t.At.Idt.Pwd.Us.Dm.Name = config.User_domain_name
+	t.At.Idt.Pwd.Us.Password = wl.OpenId
+
+	token, _ := t.GetUserToken()
+	if token == "" {
+		var uc UserCreate
+		uc.Uinfo.Name = wl.OpenId
+		uc.Uinfo.Password = wl.OpenId
+		uc.Uinfo.Default_project_id = DEFAULT_USER_PROJECT_NAME
+		uc.Uinfo.Domain_id = DEFAULT_USER_DOMAIN_NAME
+		uc.Uinfo.Email = ""
+		uc.Uinfo.Description = "wechat user"
+
+		err := uc.Create()
+		if err != nil {
+			beego.Error(err)
+			resp.ErrCode = 4
+			resp.ErrMsg = fmt.Sprintf("registe fail [%s]", err)
+			this.Ctx.Output.JSON(resp, true, false)
+			return 
+		}
+		token, _ = t.GetUserToken()
+	}
+
+	var t_resp response
+	t_resp.Token = token
+	tokeninfo, err := GetUserInfo(token)
+	if err != nil {
+		beego.Error(err)
+		resp.ErrCode = 3008
+		resp.ErrMsg = "get user info fail"
+		this.Ctx.Output.JSON(resp, true, false)
+		return
+	}
+
+	expires_at := tokeninfo.Token.Expires_at
+	now := time.Now().Unix()
+	format := "2006-01-02T15:04:05.000000Z"
+	expires_at_timestamp, _ := time.Parse(format, expires_at)
+	t_timestamp := expires_at_timestamp.Unix()
+	t_resp.Expires_in = t_timestamp - now 
+	this.Ctx.Output.JSON(t_resp, true, false)
+
+	return
+}
+
+

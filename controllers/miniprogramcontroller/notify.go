@@ -11,6 +11,7 @@ import (
 	. "wksw/notify/models/error"
 	"wksw/notify/models/job"
 	"wksw/notify/models/job/queue"
+	. "wksw/notify/models/keystone"
 	. "wksw/notify/models/notify"
 	. "wksw/notify/models/notify/miniprogrammodels"
 )
@@ -175,6 +176,7 @@ func (this *TemplateNotify) Notify() {
 }
 
 func (this *TemplateNotify) PostFormid() {
+	var ersp ErrResponse
 	config, err := GetConfig()
 	if err != nil {
 		beego.Error(err)
@@ -183,18 +185,13 @@ func (this *TemplateNotify) PostFormid() {
 	}
 
 	appid := this.Ctx.Input.Header("AppId")
+	wxagent := this.Ctx.Input.Header("X-Wechat-Agent")
 
 	var req PostFormid
 	err = json.Unmarshal(this.Ctx.Input.RequestBody, &req)
 	if err != nil {
 		beego.Error(err)
 		this.Ctx.Output.JSON(BadRequestErr, true, false)
-		return
-	}
-	err = req.Validation()
-	if err != nil {
-		beego.Error(err)
-		this.Ctx.Output.JSON(RequestValidErr, true, false)
 		return
 	}
 
@@ -205,6 +202,28 @@ func (this *TemplateNotify) PostFormid() {
 		return
 	}
 	defer ssdb.Client.Close()
+
+	if wxagent != "" {
+		tokeninfo, err := GetUserInfo(this.Ctx.Input.Header("X-Auth-Token"))
+		if err != nil {
+			beego.Error(err)
+			ersp.ErrCode = 3008
+			ersp.ErrMsg = "get user info fail"
+			this.Ctx.Output.JSON(ersp, true, false)
+			return
+		}
+		if len(req.Data) >0 {
+			req.Data[0].OpenId = tokeninfo.Token.User.Name
+			appid = config.Wechat.AppId
+		}
+	}
+
+	err = req.Validation()
+	if err != nil {
+		beego.Error(err)
+		this.Ctx.Output.JSON(RequestValidErr, true, false)
+		return
+	}
 	err = ssdb.StoreFormId(&req, appid)
 	if err != nil {
 		beego.Error(err)
@@ -214,6 +233,8 @@ func (this *TemplateNotify) PostFormid() {
 	this.Ctx.Output.JSON(NoneErr, true, false)
 	return
 }
+
+
 
 func (this *TemplateNotify) GetNotifystate() {
 	config, err := GetConfig()

@@ -28,9 +28,11 @@ func init() {
 
 	beego.Router("/custometoken", &usercontroller.UserController{}, "post:Post;delete:Delete")
 
-	 beego.Router("/login", &usercontroller.UserController{}, "post:Login")
+	beego.Router("/login", &usercontroller.UserController{}, "post:Login")
+	beego.Router("/wxlogin", &usercontroller.UserController{}, "post:WxLogin")
     beego.Router("/registe", &usercontroller.UserController{}, "post:Registe")
     beego.Router("/project", &projectcontroller.ProjectController{}, "post:Add;delete:Delete;get:Get")
+    beego.Router("/project/:appid", &projectcontroller.ProjectController{}, "get:GetByAppId")
     beego.Router("/template", &templatecontroller.TemplateController{}, "get:GetTemplatelist")
     beego.Router("/quota", &quotacontroller.QuotaController{}, "get:Get;post:Update")
 }

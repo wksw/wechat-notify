@@ -8,6 +8,7 @@ import (
 type NotifyProject struct {
 	Id int `json:"id"`
 	Userid string `json:"userid"`
+	Name string `json: "name"`
 	Appid string `json:"appid"`
 	Type int `json:"type"`
 	Describe string `json:"describe"`

@@ -79,7 +79,7 @@ func Produce(user *User, templateid string) error {
 			beego.Error(err)
 			return err
 		}
-		u, err := getUsers(token, next_openid)
+		u, err := GetUsers(token, next_openid)
 		if err != nil {
 			beego.Error("get users from remote server fail", err)
 			break
@@ -218,7 +218,7 @@ func send(token string, tn *templateNotify) *ErrResponse {
 	return &ersp
 }
 
-func getUsers(token, next_openid string) (*users, error) {
+func GetUsers(token, next_openid string) (*users, error) {
 	u, _ := url.Parse(PUBLICNUMBER_GETUSERS_API)
 	q := u.Query()
 

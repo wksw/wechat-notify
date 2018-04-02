@@ -32,12 +32,56 @@ type rever_token struct {
 	Expire_time  int64 `json:"expire_time"`
 }
 
+type WxLoginResponse struct {
+	OpenId string `json:"openid"`
+	SessionKey string `json:"session_key"`
+	UnionId string `json:"unionid"`
+}
+
 func (p *CustomToken) Validation() error {
 	valid := validation.Validation{}
 	if v := valid.Required(p.AppId, "appid"); !v.Ok {
 		return errors.New(fmt.Sprintf("%s:%s", v.Error.Key, v.Error.Message))
 	}
 	return nil
+}
+
+func WxLogin(appid, secret, code string) (*WxLoginResponse, error) {
+	var wl WxLoginResponse
+
+	u, _ := url.Parse(WECHATLOGIN_SESSION_API)
+	q := u.Query()
+	q.Set("appid", appid)
+	q.Set("secret", secret)
+	q.Set("js_code", code)
+	q.Set("grant_type", "authorization_code")
+	u.RawQuery = q.Encode()
+	res, err := http.Get(u.String())
+	if err != nil {
+		return &wl, err
+	}
+	result, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return &wl, err
+	}
+	res.Body.Close()
+	var resp ErrResponse
+	err = json.Unmarshal(result, &resp)
+	if err != nil {
+		return &wl, err
+	}
+
+	if resp.ErrCode != 0 {
+		return &wl, errors.New(resp.ErrMsg)
+	}
+
+	err = json.Unmarshal(result, &wl)
+	if err != nil {
+		return &wl, err
+	}
+	return &wl, nil
+
+
 }
 
 func GetToken(user *User) (Token, error) {

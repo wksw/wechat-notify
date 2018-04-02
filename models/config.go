@@ -26,6 +26,7 @@ type Config struct {
 	User_enable bool
 	Notify_server string
 	Max_project int 
+	Wechat Wechat
 }
 
 type Amqp struct {
@@ -45,6 +46,11 @@ type Db struct {
 	WritePort int
 	ReadHost  string
 	ReadPort  int
+}
+
+type Wechat struct {
+	AppId string 
+	Secret string 
 }
 
 func GetConfig() (*Config, error) {
@@ -200,6 +206,18 @@ func GetConfig() (*Config, error) {
 	}
 
 	config.Max_project = max_project
+
+	appid := beego.AppConfig.String("wechat::appid")
+	if appid == "" {
+		return &config, errors.New("appid is must")
+	}
+	config.Wechat.AppId = appid
+
+	secret := beego.AppConfig.String("wechat::secret")
+	if secret == "" {
+		return &config, errors.New("secret is must")
+	}
+	config.Wechat.Secret = secret
 
 	
 

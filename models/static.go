@@ -15,6 +15,7 @@ const (
 	MINIPROGRAM_TEMPLATE_NOTIFY_API  string = "https://api.weixin.qq.com/cgi-bin/message/wxopen/template/send"
 	PUBLICNUMBER_GETUSERS_API        string = "https://api.weixin.qq.com/cgi-bin/user/get"
 	PUBLICNUMBER_TEMPLATE_NOTIFY_API string = "https://api.weixin.qq.com/cgi-bin/message/template/send"
+	WECHATLOGIN_SESSION_API string = "https://api.weixin.qq.com/sns/jscode2session"
 
 	// notify controll
 	MINIPROGRAM_NOTIFY string = "MINIPROGRAM"
