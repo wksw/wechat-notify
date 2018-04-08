@@ -14,6 +14,7 @@ import (
 	. "wksw/notify/models/keystone"
 	. "wksw/notify/models/notify"
 	. "wksw/notify/models/notify/miniprogrammodels"
+	"sort"
 )
 
 type TemplateNotify struct {
@@ -50,17 +51,25 @@ func (this *TemplateNotify) GetState() {
 	defer ssdb.Client.Close()
 	size, _ := ssdb.Hsize(fmt.Sprintf(HISTORY, appid, templateid))
 	hs, _ := ssdb.Hscan(fmt.Sprintf(HISTORY, appid, templateid), "", size)
+	var tmpIndex []int
 	for _, h := range(hs) {
-		// id := h.OpenId
-		value := h.ErrMsg
-		var data History
-		// var hst = make(map[int]History)
-		json.Unmarshal([]byte(value), &data)
-		// d, err := strconv.Atoi(id)
-		if err == nil {
-			// hst[d] = data 
-			// st.Hst[d] = hst[d]	
-			st.Hst = append(st.Hst, data)		
+		id := h.OpenId 
+		d, _ := strconv.Atoi(id)
+		tmpIndex = append(tmpIndex, d)
+	}
+	sort.Ints(tmpIndex)
+
+	for _, key := range(tmpIndex) {
+		for _, h := range(hs) {
+			id := h.OpenId
+			d, _ := strconv.Atoi(id)
+			value := h.ErrMsg
+			var data History
+			json.Unmarshal([]byte(value), &data)
+			if key == d {
+				st.Hst = append(st.Hst, data)
+				break
+			}
 		}
 	}
 	total, err := ssdb.Zsize(fmt.Sprintf(UNKNOWN_TEMPLATE_ID, appid))

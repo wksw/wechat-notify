@@ -199,7 +199,7 @@ func (this *ProjectController) Get() {
 			token, _ := ssdb.GetSetToken(&user)
 			u, err := GetUsers(token, "")
 			if err != nil {
-				beego.Error(err)
+				beego.Error(user.AppId, err)
 				maps[index]["currentUser"] = 0
 			} else {
 				maps[index]["currentUser"] = u.Total
