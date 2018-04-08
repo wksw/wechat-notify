@@ -311,10 +311,6 @@ func (s *SsdbClient) GetFormIdByOpenId(openid string) (string, error) {
 
 func (s *SsdbClient) TemplateNotifyInit(appid, templateid string) error {
 	// init job start time
-	err := s.Set(fmt.Sprintf(JOB_START_TIME, appid, templateid), time.Now().Unix(), INVALID_TTL)
-	if err != nil {
-		return errors.New("init time start fail")
-	}
 
 	var history History
 	total_str, _ := s.Get(fmt.Sprintf(PRODUCE_TOTAL, appid, templateid))
@@ -328,7 +324,7 @@ func (s *SsdbClient) TemplateNotifyInit(appid, templateid string) error {
 	fail_size, _ := s.Hsize(fmt.Sprintf(NOTIFY_FAIL, appid, templateid))
 	invalid_size, _ := s.Zsize(fmt.Sprintf(NOTIFY_INVALID, appid, templateid))
 	start_at, _ := s.Get(fmt.Sprintf(JOB_START_TIME, appid, templateid))
-	end_at, _ := s.Get(fmt.Sprintf(JOB_END_TIME, appid, templateid))
+	end_at, err := s.Get(fmt.Sprintf(JOB_END_TIME, appid, templateid))
 	history.Success = success_size
 	history.Fail = fail_size
 	history.Invalid = invalid_size
@@ -350,6 +346,12 @@ func (s *SsdbClient) TemplateNotifyInit(appid, templateid string) error {
 			next_job_num = d
 		}
 	}
+
+	err = s.Set(fmt.Sprintf(JOB_START_TIME, appid, templateid), time.Now().Unix(), INVALID_TTL)
+	if err != nil {
+		return errors.New("init time start fail")
+	}
+
 	size, _ := s.Hsize(fmt.Sprintf(HISTORY, appid, templateid))
 	if size != 0 && size > max_history {
 		s.Client.Do("hdel", fmt.Sprintf(HISTORY, appid, templateid), next_job_num-1-max_history)

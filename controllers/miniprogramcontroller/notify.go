@@ -21,7 +21,8 @@ type TemplateNotify struct {
 }
 type state struct {
 	Total int `json:"total"`
-	Hst map[int]History `json:"history"`
+	// Hst map[int]History `json:"history"`
+	Hst []History `json:"history"`
 }
 
 
@@ -50,15 +51,16 @@ func (this *TemplateNotify) GetState() {
 	size, _ := ssdb.Hsize(fmt.Sprintf(HISTORY, appid, templateid))
 	hs, _ := ssdb.Hscan(fmt.Sprintf(HISTORY, appid, templateid), "", size)
 	for _, h := range(hs) {
-		id := h.OpenId
+		// id := h.OpenId
 		value := h.ErrMsg
 		var data History
-		var hst = make(map[int]History)
+		// var hst = make(map[int]History)
 		json.Unmarshal([]byte(value), &data)
-		d, err := strconv.Atoi(id)
+		// d, err := strconv.Atoi(id)
 		if err == nil {
-			hst[d] = data 
-			st.Hst = hst			
+			// hst[d] = data 
+			// st.Hst[d] = hst[d]	
+			st.Hst = append(st.Hst, data)		
 		}
 	}
 	total, err := ssdb.Zsize(fmt.Sprintf(UNKNOWN_TEMPLATE_ID, appid))
